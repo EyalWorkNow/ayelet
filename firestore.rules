@@ -1,0 +1,146 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helper functions ──────────────────────────────────────────────────────
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email == 'admin@admin.com' ||
+        request.auth.token.email == 'eyalatiyawork@gmail.com' ||
+        request.auth.token.email == 'admin@ayala.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function hasFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function str(field, min, max) {
+      return request.resource.data[field] is string
+          && request.resource.data[field].size() >= min
+          && request.resource.data[field].size() <= max;
+    }
+
+    function optStr(field, min, max) {
+      return !(field in request.resource.data)
+          || (request.resource.data[field] is string
+              && request.resource.data[field].size() >= min
+              && request.resource.data[field].size() <= max);
+    }
+
+    function optList(field, maxSize) {
+      return !(field in request.resource.data)
+          || (request.resource.data[field] is list
+              && request.resource.data[field].size() <= maxSize);
+    }
+
+    // ─── Validators ───────────────────────────────────────────────────────────
+
+    function validBooking() {
+      return hasFields(['clientName', 'clientPhone', 'services', 'date', 'startTime',
+                        'endTime', 'status', 'hairType', 'totalPrice', 'createdAt'])
+          && str('clientName', 2, 100)
+          && str('clientPhone', 5, 25)
+          && request.resource.data.services is list
+          && request.resource.data.services.size() >= 1
+          && request.resource.data.services.size() <= 10
+          && str('date', 10, 10)
+          && str('startTime', 5, 5)
+          && str('endTime', 5, 5)
+          && request.resource.data.status in ['new', 'confirmed', 'completed', 'cancelled']
+          && request.resource.data.hairType in ['straight', 'wavy', 'curly']
+          && request.resource.data.totalPrice is number
+          && request.resource.data.totalPrice >= 0
+          && request.resource.data.createdAt is timestamp
+          && optStr('notes', 0, 2000)
+          && optStr('clientEmail', 0, 200)
+          && optList('images', 5);
+    }
+
+    function validService() {
+      return hasFields(['nameEn', 'nameHe', 'durationMinutes', 'price', 'isAddon', 'isActive'])
+          && str('nameEn', 1, 100)
+          && str('nameHe', 1, 100)
+          && request.resource.data.durationMinutes is number
+          && request.resource.data.durationMinutes >= 0
+          && request.resource.data.price is number
+          && request.resource.data.price >= 0
+          && request.resource.data.isAddon is bool
+          && request.resource.data.isActive is bool
+          && optStr('descriptionEn', 0, 1000)
+          && optStr('descriptionHe', 0, 1000);
+    }
+
+    function validAvailability() {
+      return hasFields(['isAvailable'])
+          && request.resource.data.isAvailable is bool;
+    }
+
+    function validSettings() {
+      return hasFields(['studentDiscountAmount', 'studentDiscountType', 'slotIntervalMinutes'])
+          && request.resource.data.studentDiscountAmount is number
+          && request.resource.data.studentDiscountAmount >= 0
+          && request.resource.data.studentDiscountType in ['fixed', 'percentage']
+          && request.resource.data.slotIntervalMinutes is number
+          && request.resource.data.slotIntervalMinutes >= 10;
+    }
+
+    function validClient() {
+      return hasFields(['phone', 'name', 'totalBookings', 'completedBookings'])
+          && str('phone', 5, 25)
+          && str('name', 2, 100)
+          && request.resource.data.totalBookings is number
+          && request.resource.data.completedBookings is number;
+    }
+
+    // ─── Rules ────────────────────────────────────────────────────────────────
+
+    match /users/{userId} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /services/{serviceId} {
+      allow read: if true;
+      allow create: if isAdmin() && validService();
+      allow update: if isAdmin() && validService();
+      allow delete: if isAdmin();
+    }
+
+    match /bookings/{bookingId} {
+      // Clients can create new bookings; admins can read/update/delete any booking
+      allow create: if validBooking() && request.resource.data.status == 'new';
+      allow read:   if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /availability/{docId} {
+      allow read: if true;
+      allow write: if isAdmin() && validAvailability();
+      allow delete: if isAdmin();
+    }
+
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /clients/{phone} {
+      // Clients can create / update their own profile (no auth required — keyed by phone)
+      allow read:   if isAdmin();
+      allow create: if validClient();
+      allow update: if validClient();
+      allow delete: if isAdmin();
+    }
+  }
+}

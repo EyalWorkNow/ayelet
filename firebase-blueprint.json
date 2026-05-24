@@ -1,0 +1,105 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Admin user profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin"] }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Service": {
+      "title": "Service",
+      "description": "A service offered by the studio",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nameEn": { "type": "string" },
+        "nameHe": { "type": "string" },
+        "descriptionEn": { "type": "string" },
+        "descriptionHe": { "type": "string" },
+        "durationMinutes": { "type": "number" },
+        "price": { "type": "number" },
+        "isAddon": { "type": "boolean" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["nameEn", "nameHe", "durationMinutes", "price", "isAddon", "isActive"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "A client appointment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientName": { "type": "string" },
+        "clientPhone": { "type": "string" },
+        "services": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "date": { "type": "string", "format": "date" },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" },
+        "status": { "type": "string", "enum": ["new", "confirmed", "cancelled", "completed"] },
+        "hairType": { "type": "string", "enum": ["straight", "wavy", "curly"] },
+        "isStudent": { "type": "boolean" },
+        "notes": { "type": "string" },
+        "images": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "totalPrice": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientName", "clientPhone", "services", "date", "startTime", "endTime", "status", "hairType", "totalPrice", "createdAt"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Global studio settings",
+      "type": "object",
+      "properties": {
+        "studentDiscountAmount": { "type": "number" },
+        "studentDiscountType": { "type": "string", "enum": ["fixed", "percentage"] }
+      },
+      "required": ["studentDiscountAmount", "studentDiscountType"]
+    },
+    "Availability": {
+      "title": "Availability",
+      "description": "Weekly schedule or specific date overrides",
+      "type": "object",
+      "properties": {
+        "dayOfWeek": { "type": "number" },
+        "date": { "type": "string", "format": "date" },
+        "isAvailable": { "type": "boolean" },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" }
+      },
+      "required": ["isAvailable"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Admin users"
+    },
+    "/services/{serviceId}": {
+      "schema": { "$ref": "#/entities/Service" },
+      "description": "Available services"
+    },
+    "/bookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/Booking" },
+      "description": "Client bookings"
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/Settings" },
+      "description": "Global settings"
+    },
+    "/availability/{availabilityId}": {
+      "schema": { "$ref": "#/entities/Availability" },
+      "description": "Availability rules"
+    }
+  }
+}
