@@ -18,14 +18,28 @@ export const Home: React.FC = () => {
   const [bookingCount, setBookingCount] = useState(0);
 
   useEffect(() => {
-    const saved = localStorage.getItem('lastBooking');
-    const name = localStorage.getItem('clientName');
-    const count = parseInt(localStorage.getItem('bookingCount') || '0', 10);
-    if (saved) {
-      try { setLastBooking(JSON.parse(saved)); } catch {}
-    }
-    if (name) setClientName(name);
-    setBookingCount(count);
+    const refreshHomeState = () => {
+      const saved = localStorage.getItem('lastBooking');
+      const name = localStorage.getItem('clientName');
+      const count = parseInt(localStorage.getItem('bookingCount') || '0', 10);
+      if (saved) {
+        try {
+          setLastBooking(JSON.parse(saved));
+        } catch {
+          setLastBooking(null);
+        }
+      } else {
+        setLastBooking(null);
+      }
+      setClientName(name);
+      setBookingCount(count);
+    };
+
+    refreshHomeState();
+    window.addEventListener('studio-access-changed', refreshHomeState);
+    return () => {
+      window.removeEventListener('studio-access-changed', refreshHomeState);
+    };
   }, []);
 
   const getTimeGreeting = () => {
@@ -113,10 +127,11 @@ export const Home: React.FC = () => {
           <img
             src={heroImage}
             alt="Ayelet Netanel Studio"
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover scale-[1.03]"
           />
-          {/* dark gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0e0610]/96 via-[#0e0610]/45 to-transparent" />
+          {/* cinematic gradient layers */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0e0610]/97 via-[#0e0610]/40 to-[#0e0610]/15" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_100%,rgba(237,70,114,0.14),transparent_60%)]" />
 
           {/* greeting row (top) */}
           <div className={`absolute top-3 left-0 right-0 flex items-center justify-between px-5 ${isRtl ? 'flex-row-reverse' : ''}`}>
@@ -149,7 +164,7 @@ export const Home: React.FC = () => {
             <motion.span
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="inline-block mb-3 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest bg-[#ED4672] text-white"
+              className="inline-flex items-center mb-3 px-3.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-gradient-to-r from-[#ED4672] to-[#d63d63] text-white shadow-lg shadow-[#ED4672]/35 ring-1 ring-white/20"
             >
               {t('professionalStudio')}
             </motion.span>
@@ -158,12 +173,12 @@ export const Home: React.FC = () => {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.08 }}
-              className="text-[2.65rem] font-black text-white leading-[1.04] tracking-tight mb-5"
+              className="text-[2.8rem] font-black text-white leading-[1.03] tracking-tight mb-5"
             >
               {language === 'en' ? (
-                <>Elevate<br />Your <span className="text-[#ED4672]">Style.</span></>
+                <>Elevate<br />Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ED4672] to-[#FF8A00]">Style.</span></>
               ) : (
-                <>שדרגי את<br /><span className="text-[#ED4672]">המראה שלך.</span></>
+                <>שדרגי את<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF8A00] to-[#ED4672]">המראה שלך.</span></>
               )}
             </motion.h1>
 
@@ -175,30 +190,33 @@ export const Home: React.FC = () => {
             >
               <Link
                 to="/book"
-                className="flex-1 bg-[#ED4672] text-white text-center py-4 rounded-2xl font-black text-base shadow-xl shadow-[#ED4672]/35 hover:bg-[#d63d63] transition-colors active:scale-[0.98]"
+                className="flex-1 bg-gradient-to-br from-[#ED4672] to-[#c8395f] text-white text-center py-4 rounded-2xl font-black text-base shadow-2xl shadow-[#ED4672]/45 hover:from-[#d63d63] hover:to-[#b8304f] transition-all active:scale-[0.98]"
               >
                 {t('bookNow')}
               </Link>
               <Link
                 to="/services"
                 aria-label={t('viewAllServices')}
-                className="w-[54px] h-[54px] flex items-center justify-center rounded-2xl bg-white/10 border border-white/20 backdrop-blur-sm text-white hover:bg-white/20 transition-colors shrink-0"
+                className="w-[54px] h-[54px] flex items-center justify-center rounded-2xl bg-white/12 border border-white/25 backdrop-blur-md text-white hover:bg-white/22 transition-colors shrink-0"
               >
                 <ArrowUpRight size={20} />
               </Link>
             </motion.div>
 
             {/* mini stats bar */}
-            <div className={`flex items-center gap-5 mt-5 ${isRtl ? 'flex-row-reverse justify-end' : ''}`}>
+            <div className={`flex items-center gap-4 mt-5 ${isRtl ? 'flex-row-reverse justify-end' : ''}`}>
               {[
                 { value: '500+', label: t('happyClients') },
                 { value: '8+', label: t('yearsExperience') },
-                { value: '★ 4.9', label: t('serviceRating') },
+                { value: '4.9★', label: t('serviceRating') },
               ].map((s, i) => (
-                <div key={i} className={isRtl ? 'text-right' : 'text-left'}>
-                  <p className="text-white font-black text-sm leading-none">{s.value}</p>
-                  <p className="text-white/40 text-[10px] font-bold mt-0.5">{s.label}</p>
-                </div>
+                <React.Fragment key={i}>
+                  {i > 0 && <div className="w-px h-7 bg-white/20 shrink-0" />}
+                  <div className={isRtl ? 'text-right' : 'text-left'}>
+                    <p className="text-white font-black text-sm leading-none">{s.value}</p>
+                    <p className="text-white/45 text-[10px] font-bold mt-0.5">{s.label}</p>
+                  </div>
+                </React.Fragment>
               ))}
             </div>
           </div>
@@ -211,8 +229,9 @@ export const Home: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="inline-block px-4 py-2 bg-[#ED4672]/10 text-[#ED4672] rounded-full text-sm font-bold uppercase tracking-widest"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#ED4672]/8 text-[#ED4672] rounded-full text-sm font-bold uppercase tracking-widest border border-[#ED4672]/20"
             >
+              <span className="w-1.5 h-1.5 rounded-full bg-[#ED4672] animate-pulse" />
               {t('professionalStudio')}
             </motion.div>
 
@@ -224,11 +243,11 @@ export const Home: React.FC = () => {
             >
               {language === 'en' ? (
                 <>Elevate Your<br />Style with{' '}
-                  <span className="text-[#ED4672]">Ayelet</span>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ED4672] to-[#FF8A00]">Ayelet</span>
                 </>
               ) : (
                 <>שדרגי את<br />המראה שלך עם{' '}
-                  <span className="text-[#ED4672]">אילת</span>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF8A00] to-[#ED4672]">אילת</span>
                 </>
               )}
             </motion.h1>
@@ -250,28 +269,31 @@ export const Home: React.FC = () => {
             >
               <Link
                 to="/book"
-                className="bg-gray-900 text-white px-10 py-5 rounded-full font-bold text-lg hover:bg-gray-800 transition-all shadow-xl hover:scale-[1.03] active:scale-[0.97]"
+                className="bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] text-white px-10 py-5 rounded-full font-bold text-lg shadow-2xl shadow-black/25 hover:from-[#252525] hover:shadow-black/35 hover:scale-[1.03] active:scale-[0.97] transition-all"
               >
                 {t('bookNow')}
               </Link>
               <Link
                 to="/services"
-                className="bg-white text-gray-900 border-2 border-gray-200 px-10 py-5 rounded-full font-bold text-lg hover:border-gray-300 transition-all"
+                className="bg-white text-gray-900 border border-gray-200 px-10 py-5 rounded-full font-bold text-lg hover:border-[#ED4672]/25 hover:shadow-md hover:shadow-[#ED4672]/8 transition-all"
               >
                 {t('viewAllServices')}
               </Link>
             </motion.div>
 
-            <div className={`flex items-center gap-10 pt-2 ${isRtl ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex items-center gap-8 pt-2 ${isRtl ? 'flex-row-reverse' : ''}`}>
               {[
                 { value: '500+', label: t('happyClients') },
                 { value: '8+', label: t('yearsExperience') },
                 { value: '4.9★', label: t('serviceRating') },
               ].map((s, i) => (
-                <div key={i} className={isRtl ? 'text-right' : 'text-left'}>
-                  <p className="text-3xl font-black text-gray-900">{s.value}</p>
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-0.5">{s.label}</p>
-                </div>
+                <React.Fragment key={i}>
+                  {i > 0 && <div className="w-px h-10 bg-gray-200 shrink-0" />}
+                  <div className={isRtl ? 'text-right' : 'text-left'}>
+                    <p className="text-3xl font-black text-gray-900">{s.value}</p>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-0.5">{s.label}</p>
+                  </div>
+                </React.Fragment>
               ))}
             </div>
           </div>
@@ -283,15 +305,17 @@ export const Home: React.FC = () => {
             transition={{ delay: 0.12, type: 'spring', stiffness: 80 }}
             className="flex-1 relative"
           >
-            <div className="relative z-10 rounded-[40px] overflow-hidden shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-700">
+            <div className="relative z-10 rounded-[40px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.22)] rotate-2 hover:rotate-0 transition-transform duration-700">
               <img
                 src={heroImage}
                 alt="Ayelet Netanel Studio"
                 className="w-full h-[580px] object-cover"
               />
+              {/* warm vignette at bottom */}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0e0610]/30 via-transparent to-transparent pointer-events-none" />
             </div>
-            <div className="absolute -top-12 -right-12 w-72 h-72 bg-[#ED4672]/10 rounded-full blur-3xl -z-10" />
-            <div className="absolute -bottom-12 -left-12 w-72 h-72 bg-[#FF99B7]/10 rounded-full blur-3xl -z-10" />
+            <div className="absolute -top-16 -right-16 w-80 h-80 bg-[#ED4672]/12 rounded-full blur-[80px] -z-10" />
+            <div className="absolute -bottom-16 -left-16 w-80 h-80 bg-[#FF99B7]/14 rounded-full blur-[80px] -z-10" />
             {/* floating rating badge */}
             <motion.div
               initial={{ opacity: 0, x: -16, y: 10 }}

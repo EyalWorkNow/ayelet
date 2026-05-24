@@ -1,38 +1,57 @@
 import React, { useEffect, useState } from 'react';
 import { useLanguage } from '../i18n/LanguageContext';
-import { Link, Outlet, useLocation } from 'react-router-dom';
-import { Search, Home, Calendar, Bell, Globe, Lock, Sparkles } from 'lucide-react';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Search, Home, Calendar, Bell, Globe, Lock, Sparkles, LogOut, LogIn } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth } from '../firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { BrandLockup } from './BrandLogo';
 
 export const Layout: React.FC = () => {
   const { t, dir, language, setLanguage } = useLanguage();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [studioAccess, setStudioAccess] = useState<'client' | 'admin' | null>(null);
 
   useEffect(() => {
-    const refreshAdminState = (userEmail?: string | null) => {
+    const refreshAccessState = (userEmail?: string | null) => {
+      const access = localStorage.getItem('studioAccess') as 'client' | 'admin' | null;
+      setStudioAccess(access);
+
       const adminEmails = ['admin@admin.com', 'eyalatiyawork@gmail.com', 'admin@ayala.com'];
-      setIsAdmin(
-        localStorage.getItem('studioAccess') === 'admin' ||
-          (userEmail ? adminEmails.includes(userEmail) : false)
-      );
+      const hasAdmin =
+        access === 'admin' ||
+        (userEmail ? adminEmails.includes(userEmail) : false);
+      setIsAdmin(hasAdmin);
     };
 
-    refreshAdminState(auth.currentUser?.email);
+    refreshAccessState(auth.currentUser?.email);
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      refreshAdminState(user?.email);
+      refreshAccessState(user?.email);
     });
 
-    const handleAccessChange = () => refreshAdminState(auth.currentUser?.email);
+    const handleAccessChange = () => refreshAccessState(auth.currentUser?.email);
     window.addEventListener('studio-access-changed', handleAccessChange);
     return () => {
       unsubscribe();
       window.removeEventListener('studio-access-changed', handleAccessChange);
     };
   }, []);
+
+  const handleLogout = async () => {
+    localStorage.removeItem('studioAccess');
+    localStorage.removeItem('clientName');
+    localStorage.removeItem('clientPhone');
+    localStorage.removeItem('adminEmail');
+    localStorage.removeItem('hairType');
+    localStorage.removeItem('lastBooking');
+    localStorage.removeItem('bookingCount');
+
+    window.dispatchEvent(new Event('studio-access-changed'));
+    await signOut(auth).catch(() => undefined);
+    navigate('/');
+  };
 
   const navLinks = [
     { name: t('home'), path: '/', icon: <Home size={22} /> },
@@ -96,6 +115,23 @@ export const Layout: React.FC = () => {
               <Globe size={16} />
               {language === 'en' ? 'עברית' : 'English'}
             </button>
+            {!studioAccess ? (
+              <Link
+                to="/login"
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 border border-gray-100 text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                <LogIn size={16} />
+                {t('login')}
+              </Link>
+            ) : (
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 border border-red-100 text-sm font-bold text-red-600 hover:bg-red-100 transition-colors"
+              >
+                <LogOut size={16} />
+                {t('logout')}
+              </button>
+            )}
             <Link 
               to="/book"
               className="bg-gray-900 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-gray-800 transition-all shadow-md"
@@ -117,6 +153,23 @@ export const Layout: React.FC = () => {
         />
         
         <div className="flex items-center gap-2">
+          {!studioAccess ? (
+            <Link
+              to="/login"
+              aria-label={t('login')}
+              className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
+            >
+              <LogIn size={18} />
+            </Link>
+          ) : (
+            <button
+              onClick={handleLogout}
+              aria-label={t('logout')}
+              className="w-10 h-10 rounded-full bg-red-50 border border-red-100 flex items-center justify-center text-red-600 hover:bg-red-100 transition-colors shadow-sm"
+            >
+              <LogOut size={18} />
+            </button>
+          )}
           <button
             onClick={toggleLanguage}
             aria-label={language === 'en' ? 'Switch to Hebrew' : 'עבור לאנגלית'}
@@ -204,7 +257,14 @@ export const Layout: React.FC = () => {
                     {link.name}
                   </Link>
                 ))}
-                {!isAdmin && (
+                {studioAccess ? (
+                  <button
+                    onClick={handleLogout}
+                    className="text-sm font-bold text-gray-500 hover:text-[#ED4672] transition-colors text-right rtl:text-right ltr:text-left border-none bg-transparent p-0 cursor-pointer"
+                  >
+                    {t('logout')}
+                  </button>
+                ) : (
                   <Link to="/login" className="text-sm font-bold text-gray-500 hover:text-[#ED4672] transition-colors">
                     {t('login')}
                   </Link>
