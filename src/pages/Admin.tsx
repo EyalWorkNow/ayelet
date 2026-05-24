@@ -16,14 +16,17 @@ import {
 import { motion } from 'motion/react';
 import {
   Calendar,
+  BarChart3,
   CalendarDays,
   CalendarOff,
   ChevronLeft,
   Clock,
   DollarSign,
   Gauge,
+  HeartHandshake,
   LayoutDashboard,
   LogOut,
+  MessageCircle,
   Plus,
   Save,
   Scissors,
@@ -31,11 +34,14 @@ import {
   Settings as SettingsIcon,
   ShieldCheck,
   Sparkles,
+  Target,
   Trash2,
+  TrendingUp,
+  Users,
   UserRound,
   XCircle,
 } from 'lucide-react';
-import { format, isToday, parseISO, subDays } from 'date-fns';
+import { addDays, format, isToday, parseISO, subDays } from 'date-fns';
 import { auth, db } from '../firebase';
 import { useLanguage } from '../i18n/LanguageContext';
 import { useToast } from '../components/Toast';
@@ -91,10 +97,12 @@ const categoryCopy = {
 const adminCopy = {
   he: {
     workspace: 'מרכז ניהול הסטודיו',
-    subtitle: 'שליטה בתורים, שירותים, זמינות והגדרות ממקום אחד, עם מצב דמו יציב כש-Firebase לא זמין.',
+    subtitle: 'שליטה בתורים, הכנסות, שירותים, זמינות והגדרות ממקום אחד, עם מבט ברור על מה דורש פעולה עכשיו.',
     live: 'מחובר ל-Firestore',
     demo: 'מצב דמו מקומי',
     dashboard: 'תמונת מצב',
+    commandCenter: 'דשבורד שליטה',
+    commandSubtitle: 'מה קורה בסטודיו, מה דורש טיפול, ואיפה יש הזדמנות לשפר הכנסות וזמינות.',
     bookings: 'תורים',
     services: 'שירותים',
     availability: 'זמינות',
@@ -104,10 +112,37 @@ const adminCopy = {
     pendingReview: 'בקשות שמחכות לאישור',
     noUrgent: 'אין בקשות דחופות כרגע',
     revenue: 'הכנסות שהושלמו',
+    revenueMonth: 'הכנסות החודש',
+    avgTicket: 'ממוצע לתור',
     completion: 'יחס השלמה',
+    utilization: 'ניצול יומן',
     activeServices: 'שירותים פעילים',
     nextBookings: 'התורים הקרובים',
     weeklyDemand: 'ביקוש 7 ימים',
+    servicePerformance: 'ביצועי שירותים',
+    clientIntelligence: 'ניתוח לקוחות',
+    controlPanel: 'מנגנוני שליטה',
+    statusBreakdown: 'סטטוס תורים',
+    sourceBreakdown: 'מקורות פנייה',
+    operatingHealth: 'בריאות תפעולית',
+    pendingApprovals: 'מחכות לאישור',
+    remindersDue: 'תזכורות לטיפול',
+    confirmationsDue: 'אישורים שלא נשלחו',
+    returningClients: 'לקוחות חוזרות',
+    uniqueClients: 'לקוחות במערכת',
+    topClient: 'לקוחה מובילה',
+    busiestService: 'השירות החזק',
+    noData: 'אין עדיין מספיק נתונים',
+    reviewPending: 'לטפל בבקשות חדשות',
+    reviewPendingText: 'אשרי או בטלי תורים חדשים כדי לשמור על יומן נקי.',
+    checkAvailability: 'לבדוק עומסים בזמינות',
+    checkAvailabilityText: 'אם היום או השבוע עמוסים, חסמי ימים או עדכני שעות פתיחה.',
+    optimizeCatalog: 'לבדוק את קטלוג השירותים',
+    optimizeCatalogText: 'השווי בין ביקושים לשירותים והפעילי רק שירותים שרלוונטיים כרגע.',
+    openBookings: 'פתיחת תורים',
+    openServices: 'ניהול שירותים',
+    openAvailability: 'ניהול זמינות',
+    openSettings: 'הגדרות סטודיו',
     searchBookings: 'חיפוש שם או טלפון',
     all: 'הכל',
     emptyBookings: 'אין תורים להצגה',
@@ -138,10 +173,12 @@ const adminCopy = {
   },
   en: {
     workspace: 'Studio Command Center',
-    subtitle: 'Bookings, catalog, availability, and studio policy in one resilient operating surface.',
+    subtitle: 'Bookings, revenue, catalog, availability, and studio policy in one focused operating surface.',
     live: 'Firestore connected',
     demo: 'Local demo mode',
     dashboard: 'Overview',
+    commandCenter: 'Control dashboard',
+    commandSubtitle: 'What is happening in the studio, what needs attention, and where revenue or availability can improve.',
     bookings: 'Bookings',
     services: 'Services',
     availability: 'Availability',
@@ -151,10 +188,37 @@ const adminCopy = {
     pendingReview: 'Requests waiting for confirmation',
     noUrgent: 'No urgent requests right now',
     revenue: 'Completed revenue',
+    revenueMonth: 'Revenue this month',
+    avgTicket: 'Average ticket',
     completion: 'Completion rate',
+    utilization: 'Calendar utilization',
     activeServices: 'Active services',
     nextBookings: 'Upcoming bookings',
     weeklyDemand: '7-day demand',
+    servicePerformance: 'Service performance',
+    clientIntelligence: 'Client intelligence',
+    controlPanel: 'Control mechanisms',
+    statusBreakdown: 'Booking status',
+    sourceBreakdown: 'Lead sources',
+    operatingHealth: 'Operating health',
+    pendingApprovals: 'Pending approvals',
+    remindersDue: 'Reminders due',
+    confirmationsDue: 'Confirmations not sent',
+    returningClients: 'Returning clients',
+    uniqueClients: 'Known clients',
+    topClient: 'Top client',
+    busiestService: 'Top service',
+    noData: 'Not enough data yet',
+    reviewPending: 'Review new requests',
+    reviewPendingText: 'Confirm or cancel new bookings to keep the schedule clean.',
+    checkAvailability: 'Check availability load',
+    checkAvailabilityText: 'If today or the week is busy, block dates or update working hours.',
+    optimizeCatalog: 'Review the service catalog',
+    optimizeCatalogText: 'Compare demand against active services and keep only relevant services live.',
+    openBookings: 'Open bookings',
+    openServices: 'Manage services',
+    openAvailability: 'Manage availability',
+    openSettings: 'Studio settings',
     searchBookings: 'Search name or phone',
     all: 'All',
     emptyBookings: 'No bookings to show',
@@ -225,6 +289,148 @@ const getLocalBlockedDates = () =>
   JSON.parse(localStorage.getItem('localBlockedDates') || '[]') as LocalBlockedDate[];
 const getLocalSettings = () =>
   JSON.parse(localStorage.getItem('localStudioSettings') || 'null') as StudioSettings | null;
+
+const dateOffset = (days: number) => format(addDays(new Date(), days), 'yyyy-MM-dd');
+
+function buildDemoBookings(): Booking[] {
+  const createdAt = new Date().toISOString();
+  return [
+    {
+      id: 'local-demo-new-1',
+      clientName: 'יובל דיין',
+      clientPhone: '0501234567',
+      services: ['haircut_styling'],
+      serviceNames: ['תספורת + עיצוב'],
+      date: dateOffset(0),
+      startTime: '11:00',
+      endTime: '12:00',
+      totalDuration: 60,
+      status: 'new',
+      hairType: 'wavy',
+      notes: 'רוצה לשמור על האורך ולחדד צורה.',
+      totalPrice: 200,
+      finalPrice: 200,
+      createdAt,
+      source: 'web',
+      confirmationSent: false,
+      reminderSent: false,
+    },
+    {
+      id: 'local-demo-confirmed-1',
+      clientName: 'נועה כהן',
+      clientPhone: '0529876543',
+      services: ['diffuser_styling'],
+      serviceNames: ['עיצוב טבעי לאירוע'],
+      date: dateOffset(1),
+      startTime: '17:00',
+      endTime: '18:00',
+      totalDuration: 60,
+      status: 'confirmed',
+      hairType: 'curly',
+      totalPrice: 200,
+      finalPrice: 200,
+      createdAt,
+      source: 'whatsapp',
+      confirmationSent: true,
+      reminderSent: false,
+    },
+    {
+      id: 'local-demo-confirmed-2',
+      clientName: 'מאיה לוי',
+      clientPhone: '0547778899',
+      services: ['curly_styling_guide'],
+      serviceNames: ['הדרכת עיצוב תלתלים'],
+      date: dateOffset(3),
+      startTime: '10:30',
+      endTime: '11:30',
+      totalDuration: 60,
+      status: 'confirmed',
+      hairType: 'curly',
+      totalPrice: 200,
+      finalPrice: 200,
+      createdAt,
+      source: 'web',
+      confirmationSent: true,
+      reminderSent: false,
+    },
+    {
+      id: 'local-demo-completed-1',
+      clientName: 'דניאל רוזן',
+      clientPhone: '0532223344',
+      services: ['haircut_styling', 'oil'],
+      serviceNames: ['תספורת + עיצוב', 'טיפול שמן'],
+      date: dateOffset(-2),
+      startTime: '12:30',
+      endTime: '14:00',
+      totalDuration: 90,
+      status: 'completed',
+      hairType: 'wavy',
+      totalPrice: 300,
+      finalPrice: 300,
+      createdAt,
+      source: 'web',
+      confirmationSent: true,
+      reminderSent: true,
+    },
+    {
+      id: 'local-demo-completed-2',
+      clientName: 'שירה אברהם',
+      clientPhone: '0521112233',
+      services: ['natural_highlights'],
+      serviceNames: ['גוונים טבעיים'],
+      date: dateOffset(-5),
+      startTime: '15:00',
+      endTime: '18:00',
+      totalDuration: 180,
+      status: 'completed',
+      hairType: 'straight',
+      totalPrice: 650,
+      finalPrice: 650,
+      createdAt,
+      source: 'whatsapp',
+      confirmationSent: true,
+      reminderSent: true,
+    },
+    {
+      id: 'local-demo-completed-3',
+      clientName: 'יובל דיין',
+      clientPhone: '0501234567',
+      services: ['haircut_styling'],
+      serviceNames: ['תספורת + עיצוב'],
+      date: dateOffset(-12),
+      startTime: '16:00',
+      endTime: '17:00',
+      totalDuration: 60,
+      status: 'completed',
+      hairType: 'wavy',
+      totalPrice: 200,
+      finalPrice: 200,
+      createdAt,
+      source: 'phone',
+      confirmationSent: true,
+      reminderSent: true,
+    },
+    {
+      id: 'local-demo-cancelled-1',
+      clientName: 'רומי פרץ',
+      clientPhone: '0505557788',
+      services: ['student_haircut'],
+      serviceNames: ['תספורת לסטודנטים'],
+      date: dateOffset(-4),
+      startTime: '10:00',
+      endTime: '10:45',
+      totalDuration: 45,
+      status: 'cancelled',
+      hairType: 'straight',
+      totalPrice: 150,
+      finalPrice: 150,
+      createdAt,
+      source: 'web',
+      confirmationSent: false,
+      reminderSent: false,
+    },
+  ];
+}
 
 function saveLocalWorkspace(partial: Partial<WorkspaceState>) {
   if (partial.bookings) localStorage.setItem('localBookings', JSON.stringify(partial.bookings));
@@ -315,11 +521,13 @@ async function loadFirestoreWorkspace(): Promise<WorkspaceState> {
 
 function loadLocalWorkspace(): WorkspaceState {
   const localServices = getLocalServices();
+  const localBookings = getLocalBookings();
+  const blockedDates = getLocalBlockedDates();
   return {
-    bookings: getLocalBookings(),
+    bookings: localBookings.length > 0 ? localBookings : buildDemoBookings(),
     services: localServices.length > 0 ? localServices : normalizeServices([]),
     schedule: getLocalSchedule() ?? DEFAULT_SCHEDULE,
-    blockedDates: getLocalBlockedDates(),
+    blockedDates: blockedDates.length > 0 ? blockedDates : [{ date: dateOffset(9), reason: 'יום חסום לדוגמה' }],
     settings: { ...DEFAULT_SETTINGS, ...(getLocalSettings() ?? {}) },
     source: 'local',
   };
@@ -587,9 +795,12 @@ function useAdminWorkspace() {
   };
 }
 
+const bookingRevenue = (booking: Booking) => booking.finalPrice ?? booking.totalPrice ?? 0;
+
 function useAdminStats(workspace: WorkspaceState) {
   return useMemo(() => {
     const today = format(new Date(), 'yyyy-MM-dd');
+    const monthPrefix = today.slice(0, 7);
     const activeBookings = workspace.bookings.filter(booking => booking.status !== 'cancelled');
     const completed = workspace.bookings.filter(booking => booking.status === 'completed');
     const newBookings = workspace.bookings.filter(booking => booking.status === 'new');
@@ -597,14 +808,67 @@ function useAdminStats(workspace: WorkspaceState) {
     const upcoming = activeBookings
       .filter(booking => booking.date >= today)
       .sort((a, b) => bookingDateTime(a).localeCompare(bookingDateTime(b)));
+    const nextSevenDays = Array.from({ length: 7 }, (_, index) => format(addDays(new Date(), index), 'yyyy-MM-dd'));
     const weeklyData = Array.from({ length: 7 }, (_, index) => {
       const day = subDays(new Date(), 6 - index);
       const date = format(day, 'yyyy-MM-dd');
+      const dayBookings = workspace.bookings.filter(booking => booking.date === date);
       return {
         label: format(day, 'dd.MM'),
-        count: workspace.bookings.filter(booking => booking.date === date).length,
+        count: dayBookings.length,
+        revenue: dayBookings
+          .filter(booking => booking.status === 'completed')
+          .reduce((sum, booking) => sum + bookingRevenue(booking), 0),
       };
     });
+    const forwardLoad = nextSevenDays.map((date, index) => {
+      const dayBookings = activeBookings.filter(booking => booking.date === date);
+      return {
+        date,
+        label: format(addDays(new Date(), index), 'dd.MM'),
+        count: dayBookings.length,
+        minutes: dayBookings.reduce((sum, booking) => sum + (booking.totalDuration ?? 60), 0),
+      };
+    });
+    const serviceStats = workspace.services
+      .map(service => {
+        const related = workspace.bookings.filter(booking => booking.services.includes(service.id));
+        const relatedCompleted = related.filter(booking => booking.status === 'completed');
+        return {
+          service,
+          count: related.length,
+          revenue: relatedCompleted.reduce((sum, booking) => sum + bookingRevenue(booking), 0),
+          completedCount: relatedCompleted.length,
+        };
+      })
+      .sort((a, b) => b.count - a.count || b.revenue - a.revenue);
+    const sourceStats = (['web', 'whatsapp', 'phone', 'admin'] as NonNullable<Booking['source']>[]).map(source => ({
+      source,
+      count: workspace.bookings.filter(booking => (booking.source ?? 'web') === source).length,
+    }));
+    const statusData = (['new', 'confirmed', 'completed', 'cancelled'] as BookingStatus[]).map(status => ({
+      status,
+      count: workspace.bookings.filter(booking => booking.status === status).length,
+    }));
+    const clients = new Map<string, { name: string; count: number; spent: number; lastDate: string }>();
+    workspace.bookings.forEach(booking => {
+      const key = booking.clientPhone || booking.clientName;
+      const existing = clients.get(key) ?? { name: booking.clientName, count: 0, spent: 0, lastDate: '' };
+      clients.set(key, {
+        name: booking.clientName || existing.name,
+        count: existing.count + 1,
+        spent: existing.spent + (booking.status === 'completed' ? bookingRevenue(booking) : 0),
+        lastDate: booking.date > existing.lastDate ? booking.date : existing.lastDate,
+      });
+    });
+    const clientRows = Array.from(clients.values()).sort((a, b) => b.spent - a.spent || b.count - a.count);
+    const openDays = workspace.schedule.filter(day => day.isOpen).length;
+    const nextWeekCapacity = Math.max(openDays * 4, 1);
+    const nextWeekBooked = activeBookings.filter(booking => nextSevenDays.includes(booking.date)).length;
+    const revenue = completed.reduce((sum, booking) => sum + bookingRevenue(booking), 0);
+    const monthRevenue = completed
+      .filter(booking => booking.date.startsWith(monthPrefix))
+      .reduce((sum, booking) => sum + bookingRevenue(booking), 0);
 
     return {
       total: workspace.bookings.length,
@@ -613,18 +877,34 @@ function useAdminStats(workspace: WorkspaceState) {
       confirmedCount: confirmed.length,
       completedCount: completed.length,
       cancelledCount: workspace.bookings.filter(booking => booking.status === 'cancelled').length,
-      revenue: completed.reduce((sum, booking) => sum + (booking.finalPrice ?? booking.totalPrice ?? 0), 0),
+      revenue,
+      monthRevenue,
+      avgTicket: completed.length > 0 ? Math.round(revenue / completed.length) : 0,
       activeServices: workspace.services.filter(service => service.isActive).length,
       completionRate:
         workspace.bookings.length > 0 ? Math.round((completed.length / workspace.bookings.length) * 100) : 0,
+      utilizationRate: Math.min(100, Math.round((nextWeekBooked / nextWeekCapacity) * 100)),
+      uniqueClients: clients.size,
+      returningClients: clientRows.filter(client => client.count > 1).length,
+      remindersDue: confirmed.filter(booking => booking.date >= today && !booking.reminderSent).length,
+      confirmationsDue: activeBookings.filter(booking => !booking.confirmationSent).length,
+      openDays,
+      blockedDates: workspace.blockedDates.length,
+      topClient: clientRows[0],
+      busiestService: serviceStats[0],
       upcoming,
       weeklyData,
+      forwardLoad,
+      serviceStats,
+      sourceStats,
+      statusData,
+      clientRows,
     };
   }, [workspace]);
 }
 
 const Card: React.FC<React.PropsWithChildren<{ className?: string }>> = ({ children, className = '' }) => (
-  <div className={`rounded-[22px] border border-white/70 bg-white/90 shadow-[0_14px_42px_rgba(39,25,20,0.07)] sm:rounded-[28px] sm:shadow-[0_18px_54px_rgba(39,25,20,0.08)] ${className}`}>
+  <div className={`min-w-0 max-w-full rounded-[22px] border border-white/70 bg-white/90 shadow-[0_14px_42px_rgba(39,25,20,0.07)] sm:rounded-[28px] sm:shadow-[0_18px_54px_rgba(39,25,20,0.08)] ${className}`}>
     {children}
   </div>
 );
@@ -643,33 +923,104 @@ const SectionTitle: React.FC<{ eyebrow?: string; title: string; action?: React.R
   </div>
 );
 
+function sourceLabel(source: NonNullable<Booking['source']>, language: 'he' | 'en') {
+  const labels = {
+    he: { web: 'אתר', whatsapp: 'וואטסאפ', phone: 'טלפון', admin: 'אדמין' },
+    en: { web: 'Web', whatsapp: 'WhatsApp', phone: 'Phone', admin: 'Admin' },
+  };
+  return labels[language][source];
+}
+
 function DashboardView({ workspace }: { workspace: WorkspaceState }) {
   const { language } = useLanguage();
   const c = adminCopy[language];
   const stats = useAdminStats(workspace);
-  const maxWeekly = Math.max(...stats.weeklyData.map(item => item.count), 1);
+  const maxWeekly = Math.max(...stats.forwardLoad.map(item => item.count), 1);
+  const maxService = Math.max(...stats.serviceStats.map(item => item.count), 1);
+  const maxSource = Math.max(...stats.sourceStats.map(item => item.count), 1);
   const urgent = workspace.bookings
     .filter(booking => booking.status === 'new')
     .sort((a, b) => bookingDateTime(a).localeCompare(bookingDateTime(b)));
 
   const metricCards = [
-    { label: c.today, value: stats.today, icon: CalendarDays, tone: 'bg-[#fff1f5] text-[#ED4672]' },
-    { label: c.pendingReview, value: stats.newCount, icon: Gauge, tone: 'bg-blue-50 text-blue-700' },
-    { label: c.revenue, value: `₪${stats.revenue.toLocaleString()}`, icon: DollarSign, tone: 'bg-[#111015] text-white' },
-    { label: c.completion, value: `${stats.completionRate}%`, icon: ShieldCheck, tone: 'bg-emerald-50 text-emerald-700' },
+    { label: c.today, value: stats.today, icon: CalendarDays, detail: `${stats.upcoming.length} ${c.nextBookings}`, tone: 'bg-[#fff1f5] text-[#ED4672]' },
+    { label: c.pendingApprovals, value: stats.newCount, icon: Gauge, detail: `${stats.confirmationsDue} ${c.confirmationsDue}`, tone: 'bg-blue-50 text-blue-700' },
+    { label: c.revenueMonth, value: `₪${stats.monthRevenue.toLocaleString()}`, icon: DollarSign, detail: `${c.avgTicket}: ₪${stats.avgTicket.toLocaleString()}`, tone: 'bg-[#111015] text-white' },
+    { label: c.utilization, value: `${stats.utilizationRate}%`, icon: ShieldCheck, detail: `${stats.openDays} ${c.open} · ${stats.blockedDates} ${c.blockedDates}`, tone: 'bg-emerald-50 text-emerald-700' },
+  ];
+  const actionCards = [
+    {
+      title: c.reviewPending,
+      text: c.reviewPendingText,
+      value: stats.newCount,
+      icon: Target,
+      to: '/admin/bookings',
+      cta: c.openBookings,
+    },
+    {
+      title: c.checkAvailability,
+      text: c.checkAvailabilityText,
+      value: stats.utilizationRate,
+      suffix: '%',
+      icon: CalendarOff,
+      to: '/admin/availability',
+      cta: c.openAvailability,
+    },
+    {
+      title: c.optimizeCatalog,
+      text: c.optimizeCatalogText,
+      value: stats.activeServices,
+      icon: Scissors,
+      to: '/admin/services',
+      cta: c.openServices,
+    },
   ];
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      <div className="overflow-hidden rounded-[28px] bg-[#111015] p-5 text-white shadow-[0_22px_70px_rgba(17,16,21,0.2)] sm:p-7">
+        <div className="grid gap-6 lg:grid-cols-[1fr_360px] lg:items-end">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#ED4672]">
+              AYELET ADMIN
+            </p>
+            <h2 className="mt-3 max-w-2xl text-3xl font-black leading-tight tracking-tight sm:text-4xl">
+              {c.commandCenter}
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm font-bold leading-6 text-white/62">
+              {c.commandSubtitle}
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-2 rounded-[24px] bg-white/8 p-2">
+            <div className="rounded-[18px] bg-white/8 p-3">
+              <p className="text-2xl font-black">{stats.uniqueClients}</p>
+              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.13em] text-white/45">{c.uniqueClients}</p>
+            </div>
+            <div className="rounded-[18px] bg-white/8 p-3">
+              <p className="text-2xl font-black">{stats.returningClients}</p>
+              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.13em] text-white/45">{c.returningClients}</p>
+            </div>
+            <div className="rounded-[18px] bg-[#ED4672] p-3">
+              <p className="text-2xl font-black">{stats.remindersDue}</p>
+              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.13em] text-white/70">{c.remindersDue}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         {metricCards.map(card => (
-          <Card key={card.label} className={`p-4 sm:p-5 ${card.tone}`}>
+          <div
+            key={card.label}
+            className={`rounded-[22px] border border-white/70 p-4 shadow-[0_14px_42px_rgba(39,25,20,0.07)] sm:rounded-[28px] sm:p-5 sm:shadow-[0_18px_54px_rgba(39,25,20,0.08)] ${card.tone}`}
+          >
             <div className="flex items-start justify-between gap-3">
               <p className="max-w-[120px] text-[10px] font-black uppercase tracking-[0.12em] opacity-70 sm:text-xs sm:tracking-[0.18em]">{card.label}</p>
               <card.icon size={18} />
             </div>
             <p className="mt-4 text-2xl font-black sm:mt-5 sm:text-3xl">{card.value}</p>
-          </Card>
+            <p className="mt-2 text-[11px] font-black opacity-60">{card.detail}</p>
+          </div>
         ))}
       </div>
 
@@ -706,7 +1057,7 @@ function DashboardView({ workspace }: { workspace: WorkspaceState }) {
         <Card className="p-4 sm:p-5">
           <SectionTitle title={c.weeklyDemand} />
           <div className="flex h-44 items-end gap-1.5 sm:h-52 sm:gap-2">
-            {stats.weeklyData.map(item => (
+            {stats.forwardLoad.map(item => (
               <div key={item.label} className="flex flex-1 flex-col items-center gap-2">
                 <span className="text-xs font-black text-gray-500">{item.count || ''}</span>
                 <div className="flex h-36 w-full items-end">
@@ -723,17 +1074,146 @@ function DashboardView({ workspace }: { workspace: WorkspaceState }) {
         </Card>
       </div>
 
-      <Card className="p-5">
-        <SectionTitle title={c.nextBookings} />
-        <div className="grid gap-3 lg:grid-cols-2">
-          {stats.upcoming.slice(0, 6).map(booking => (
-            <BookingCompactRow key={booking.id} booking={booking} services={workspace.services} />
+      <div className="grid gap-4 xl:grid-cols-[1fr_1fr] xl:gap-5">
+        <Card className="p-4 sm:p-5">
+          <SectionTitle title={c.servicePerformance} />
+          <div className="space-y-3">
+            {stats.serviceStats.slice(0, 6).map(item => (
+              <div key={item.service.id} className="rounded-[20px] bg-[#f8f1ec] p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-gray-900">
+                      {getServiceDisplayName(item.service, language)}
+                    </p>
+                    <p className="mt-1 text-xs font-bold text-gray-400">
+                      {item.count} {c.bookings} · ₪{item.revenue.toLocaleString()}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-[#ED4672]">
+                    {item.completedCount}
+                  </span>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+                  <div
+                    className="h-full rounded-full bg-[#ED4672]"
+                    style={{ width: `${Math.max(6, (item.count / maxService) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="p-4 sm:p-5">
+          <SectionTitle title={c.operatingHealth} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-[22px] bg-[#111015] p-4 text-white">
+              <BarChart3 size={20} className="text-[#ED4672]" />
+              <p className="mt-4 text-3xl font-black">{stats.completionRate}%</p>
+              <p className="mt-1 text-[11px] font-black uppercase tracking-[0.14em] text-white/45">{c.completion}</p>
+            </div>
+            <div className="rounded-[22px] bg-[#fff1f5] p-4 text-[#ED4672]">
+              <TrendingUp size={20} />
+              <p className="mt-4 text-3xl font-black">₪{stats.revenue.toLocaleString()}</p>
+              <p className="mt-1 text-[11px] font-black uppercase tracking-[0.14em] text-[#ED4672]/60">{c.revenue}</p>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-400">{c.statusBreakdown}</p>
+            {stats.statusData.map(item => (
+              <div key={item.status} className="flex items-center gap-3">
+                <span className={`w-24 rounded-full border px-2 py-1 text-center text-[10px] font-black ${statusTone(item.status)}`}>
+                  {statusCopy[language][item.status]}
+                </span>
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#f2e7e0]">
+                  <div
+                    className="h-full rounded-full bg-[#111015]"
+                    style={{ width: `${workspace.bookings.length ? Math.max(4, (item.count / workspace.bookings.length) * 100) : 0}%` }}
+                  />
+                </div>
+                <span className="w-6 text-left text-xs font-black text-gray-500">{item.count}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr] xl:gap-5">
+        <Card className="p-5">
+          <SectionTitle title={c.nextBookings} />
+          <div className="grid gap-3 lg:grid-cols-2">
+            {stats.upcoming.slice(0, 6).map(booking => (
+              <BookingCompactRow key={booking.id} booking={booking} services={workspace.services} />
+            ))}
+            {stats.upcoming.length === 0 && (
+              <p className="rounded-2xl bg-[#f8f1ec] p-6 text-center text-sm font-bold text-gray-400">
+                {c.emptyBookings}
+              </p>
+            )}
+          </div>
+        </Card>
+
+        <Card className="p-4 sm:p-5">
+          <SectionTitle title={c.clientIntelligence} />
+          <div className="grid gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-[20px] bg-[#f8f1ec] p-4">
+                <Users size={18} className="text-[#ED4672]" />
+                <p className="mt-3 text-2xl font-black text-gray-900">{stats.uniqueClients}</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-gray-400">{c.uniqueClients}</p>
+              </div>
+              <div className="rounded-[20px] bg-[#f8f1ec] p-4">
+                <HeartHandshake size={18} className="text-[#ED4672]" />
+                <p className="mt-3 text-2xl font-black text-gray-900">{stats.returningClients}</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-gray-400">{c.returningClients}</p>
+              </div>
+            </div>
+            <div className="rounded-[20px] bg-[#111015] p-4 text-white">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">{c.topClient}</p>
+              <p className="mt-2 text-lg font-black">{stats.topClient?.name ?? c.noData}</p>
+              <p className="mt-1 text-xs font-bold text-white/50">
+                {stats.topClient ? `${stats.topClient.count} ${c.bookings} · ₪${stats.topClient.spent.toLocaleString()}` : c.noData}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-400">{c.sourceBreakdown}</p>
+              {stats.sourceStats.map(item => (
+                <div key={item.source} className="flex items-center gap-3 rounded-2xl bg-[#f8f1ec] px-3 py-2">
+                  <MessageCircle size={15} className="text-[#ED4672]" />
+                  <span className="w-20 text-xs font-black text-gray-600">{sourceLabel(item.source, language)}</span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-white">
+                    <div
+                      className="h-full rounded-full bg-[#ED4672]"
+                      style={{ width: `${Math.max(4, (item.count / maxSource) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-black text-gray-500">{item.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <Card className="p-4 sm:p-5">
+        <SectionTitle title={c.controlPanel} />
+        <div className="grid gap-3 md:grid-cols-3">
+          {actionCards.map(action => (
+            <Link key={action.title} to={action.to} className="group rounded-[22px] bg-[#f8f1ec] p-4 transition-colors hover:bg-[#fff1f5]">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#ED4672]">
+                  <action.icon size={18} />
+                </div>
+                <p className="text-2xl font-black text-gray-900">
+                  {action.value}{'suffix' in action ? action.suffix : ''}
+                </p>
+              </div>
+              <h3 className="mt-4 text-base font-black text-gray-900">{action.title}</h3>
+              <p className="mt-2 min-h-[42px] text-xs font-bold leading-5 text-gray-500">{action.text}</p>
+              <p className="mt-4 text-xs font-black text-[#ED4672]">{action.cta}</p>
+            </Link>
           ))}
-          {stats.upcoming.length === 0 && (
-            <p className="rounded-2xl bg-[#f8f1ec] p-6 text-center text-sm font-bold text-gray-400">
-              {c.emptyBookings}
-            </p>
-          )}
         </div>
       </Card>
     </div>

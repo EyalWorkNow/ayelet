@@ -52,7 +52,8 @@ export const Layout: React.FC = () => {
   const isBookingFlow =
     location.pathname.startsWith('/book') || location.pathname.startsWith('/confirmation');
   const isLoginPage = location.pathname.startsWith('/login');
-  const hideShell = isBookingFlow || isLoginPage;
+  const isAdminPage = location.pathname.startsWith('/admin');
+  const hideShell = isBookingFlow || isLoginPage || isAdminPage;
 
   return (
     <div className={`min-h-screen bg-[#fcf9f8] flex flex-col ${dir === 'rtl' ? 'rtl' : 'ltr'} text-gray-900 font-sans`}>
@@ -133,7 +134,7 @@ export const Layout: React.FC = () => {
       {/* Main Content */}
       <main
         className={`flex-grow flex flex-col relative w-full max-w-7xl mx-auto ${
-          isBookingFlow ? 'pb-28 md:pb-12' : isLoginPage ? '' : 'pb-24 md:pb-12'
+          isBookingFlow ? 'pb-28 md:pb-12' : isLoginPage || isAdminPage ? '' : 'pb-24 md:pb-12'
         }`}
       >
         <Outlet />
